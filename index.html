@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Attendance is All U Need</title>
+	<!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<body>
+	<div class="jumbotron text-center">
+		<h2 class="mt-5">Attendance is <br> All You Need</h2>
+        <br>
+		<div class="mt-3">
+			<input type="file" class="form-control" id="harFileInput">
+		</div>
+        <br>
+		<div class="mt-3">
+			<label for="dateInput" class="form-label">Select a date:</label>
+			<input type="date" class="form-control" id="dateInput">
+		</div>
+        <br>
+		<div class="mt-3">
+			<button onclick="processHarFile()" class="btn btn-primary">Process HAR File</button>
+		</div>
+
+		<!-- Container to display moduleName and item.attCode -->
+		<ul id="resultList" class="mt-3 list-group"></ul>
+	</div>
+
+	<script>
+		// Function to get today's date in YYYY-MM-DD format
+		function getTodayDate() {
+			const today = new Date();
+			const year = today.getFullYear();
+			let month = today.getMonth() + 1;
+			month = month < 10 ? '0' + month : month;
+			let day = today.getDate();
+			day = day < 10 ? '0' + day : day;
+			return year + '-' + month + '-' + day;
+		}
+
+		// Set dateInput value to today's date on page load
+		document.getElementById('dateInput').value = getTodayDate();
+
+		function processHarFile() {
+			const fileInput = document.getElementById('harFileInput');
+			const dateInput = document.getElementById('dateInput');
+			const resultList = document.getElementById('resultList');
+			resultList.innerHTML = ''; // Clear previous results
+
+			if (fileInput.files.length === 0) {
+				console.error('Please select a HAR file.');
+				return;
+			}
+
+			const file = fileInput.files[0];
+			const reader = new FileReader();
+
+			reader.onload = function (event) {
+				try {
+					const harData = JSON.parse(event.target.result);
+					const content = JSON.parse(harData.log.entries[0].response.content.text);
+					const schedule = content["schedule"];
+					const selectedDate = dateInput.value;
+
+					// Iterate through each element in schedule
+					schedule.forEach(element => {
+						// Check if the date matches selectedDate
+						if (element.date === selectedDate) {
+							const items = element.items;
+
+							items.forEach(item => {
+								console.log(item);
+								const activityName = item.activityName;
+								const startTime = item.startTime;
+								const endTime = item.endTime;
+								const slashIndex = activityName.indexOf('/');
+								const moduleName = slashIndex !== -1 ? activityName.substring(0, slashIndex) : activityName;
+								const attCode = item.attCode ? item.attCode : "no code";
+
+								// Create a new list item element
+								const listItem = document.createElement('li');
+								// Set the text content to moduleName and item.attCode
+								listItem.textContent = "[" + startTime + "-" + endTime + "] " + moduleName + "  --->  " + attCode;
+								// Add Bootstrap list group item class
+								listItem.classList.add('list-group-item');
+								// Append the list item to the result list
+								resultList.appendChild(listItem);
+							});
+						}
+					});
+
+				} catch (error) {
+					console.error('Error processing HAR file:', error);
+				}
+			};
+
+			reader.readAsText(file);
+		}
+	</script>
+</body>
+</html>
